@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // ── Traductions ────────────────────────────────────────────────────────────────
 const T = {
@@ -81,7 +81,7 @@ const T = {
     footer_try: 'Essayer gratuitement',
     footer_privacy: 'Confidentialité',
     footer_contact: 'Contact',
-    footer_rights: '© 2025 Eldaana. Tous droits réservés.',
+    footer_rights: '© 2026 Eldaana. Tous droits réservés.',
   },
   en: {
     nav_try: 'Try for free',
@@ -160,7 +160,7 @@ const T = {
     footer_try: 'Try for free',
     footer_privacy: 'Privacy',
     footer_contact: 'Contact',
-    footer_rights: '© 2025 Eldaana. All rights reserved.',
+    footer_rights: '© 2026 Eldaana. All rights reserved.',
   },
 }
 
@@ -170,7 +170,14 @@ export default function LandingPage() {
   const [lang, setLang] = useState<'fr' | 'en'>('fr')
   const [email, setEmail] = useState('')
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [showScrollTop, setShowScrollTop] = useState(false)
   const t = T[lang]
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   async function handleWaitlist(e: React.FormEvent) {
     e.preventDefault()
@@ -490,6 +497,17 @@ export default function LandingPage() {
           <p className="text-gray-600 text-sm mt-6">{t.waitlist_count}</p>
         </div>
       </section>
+
+      {/* ── SCROLL TO TOP ── */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full shimmer-btn text-white flex items-center justify-center shadow-lg text-xl"
+          aria-label="Retour en haut"
+        >
+          ↑
+        </button>
+      )}
 
       {/* ── FOOTER ── */}
       <footer className="py-12 px-6 border-t border-white/5">

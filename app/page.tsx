@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // ── Traductions ────────────────────────────────────────────────────────────────
 const T = {
@@ -190,18 +190,33 @@ const T = {
 
 const APP_URL = 'https://eldaana.streamlit.app'
 
+// ── Langues supportées — source unique de vérité ──────────────────────────────
+// Pour ajouter une langue : 1) ajouter ici, 2) ajouter T[code] ci-dessus.
+const SUPPORTED_LANGUAGES = [
+  { code: 'fr', label: 'Français' },
+  { code: 'en', label: 'English' },
+  // { code: 'es', label: 'Español' },
+  // { code: 'pt', label: 'Português' },
+] as const
+
+type Lang = typeof SUPPORTED_LANGUAGES[number]['code']
+
 export default function LandingPage() {
-  const [lang, setLang] = useState<'fr' | 'en'>('fr')
+  const [lang, setLang] = useState<Lang>('fr')
   const [email, setEmail] = useState('')
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
+  const langRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
   const t = T[lang]
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const langParam = params.get('lang')
-    if (langParam === 'en' || langParam === 'fr') {
-      setLang(langParam)
+    if (SUPPORTED_LANGUAGES.some(l => l.code === langParam)) {
+      setLang(langParam as Lang)
     }
   }, [])
 
@@ -210,6 +225,46 @@ export default function LandingPage() {
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Ferme le dropdown sur clic extérieur
+  useEffect(() => {
+    if (!langOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [langOpen])
+
+  function handleTriggerKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setLangOpen(o => !o)
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setLangOpen(true)
+      setTimeout(() => itemRefs.current[0]?.focus(), 0)
+    } else if (e.key === 'Escape') {
+      setLangOpen(false)
+    }
+  }
+
+  function handleItemKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, idx: number) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      itemRefs.current[idx + 1]?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      if (idx === 0) triggerRef.current?.focus()
+      else itemRefs.current[idx - 1]?.focus()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setLangOpen(false)
+      triggerRef.current?.focus()
+    }
+  }
 
   async function handleWaitlist(e: React.FormEvent) {
     e.preventDefault()
@@ -242,20 +297,63 @@ export default function LandingPage() {
           <span className="font-bold text-lg gradient-text">Eldaana</span>
         </div>
         <div className="flex items-center gap-3">
-          {/* Lang toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-white/10 text-sm">
+          {/* ── Sélecteur de langue — dropdown globe ── */}
+          <div ref={langRef} className="relative">
             <button
-              onClick={() => setLang('fr')}
-              className={`px-3 py-1 transition-colors ${lang === 'fr' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+              ref={triggerRef}
+              onClick={() => setLangOpen(o => !o)}
+              onKeyDown={handleTriggerKeyDown}
+              aria-haspopup="listbox"
+              aria-expanded={langOpen}
+              aria-label="Select language"
+              className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-colors min-h-[44px] min-w-[44px]"
             >
-              🇫🇷 FR
+              {/* Globe SVG — Feather/Lucide style, 18px */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              {/* Chevron rotatif */}
+              <svg
+                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden="true"
+                style={{ transform: langOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 150ms ease' }}
+              >
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
             </button>
-            <button
-              onClick={() => setLang('en')}
-              className={`px-3 py-1 transition-colors ${lang === 'en' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              🇬🇧 EN
-            </button>
+
+            {langOpen && (
+              <div
+                role="listbox"
+                aria-label="Language selection"
+                className="lang-dropdown absolute right-0 top-full mt-2 w-36 rounded-xl border border-white/10 bg-[#13131a] shadow-2xl shadow-black/60 overflow-hidden z-[200]"
+              >
+                {SUPPORTED_LANGUAGES.map((l, idx) => (
+                  <button
+                    key={l.code}
+                    role="option"
+                    aria-selected={lang === l.code}
+                    ref={el => { itemRefs.current[idx] = el }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setLang(l.code)
+                      setLangOpen(false)
+                    }}
+                    onKeyDown={(e) => handleItemKeyDown(e, idx)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors hover:bg-white/5 focus:bg-white/5 focus:outline-none ${
+                      lang === l.code ? 'text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <span>{l.label}</span>
+                    {lang === l.code && (
+                      <span className="text-purple-400 text-xs font-semibold">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <a
             href={APP_URL}

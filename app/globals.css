@@ -71,3 +71,12 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(192, 132, 252, 0.4);
 }
+
+@keyframes langDropdownIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lang-dropdown {
+  animation: langDropdownIn 150ms ease-out forwards;
+}

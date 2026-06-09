@@ -579,7 +579,7 @@ export default function LandingPage() {
             <a href="mailto:contact@eldaana.com" className="hover:text-white transition-colors">
               {t.footer_contact}
             </a>
-            <a href="#" className="hover:text-white transition-colors">
+            <a href={lang === 'fr' ? '/confidentialite' : '/privacy'} className="hover:text-white transition-colors">
               {t.footer_privacy}
             </a>
           </div>

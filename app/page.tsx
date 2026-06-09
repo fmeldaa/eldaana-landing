@@ -198,6 +198,14 @@ export default function LandingPage() {
   const t = T[lang]
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const langParam = params.get('lang')
+    if (langParam === 'en' || langParam === 'fr') {
+      setLang(langParam)
+    }
+  }, [])
+
+  useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 400)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)

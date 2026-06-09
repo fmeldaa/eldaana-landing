@@ -485,7 +485,7 @@ export default function PrivacyPage() {
 
         {/* Back link */}
         <div className="mt-20 pt-8 border-t border-white/5 flex items-center justify-between text-sm text-gray-500">
-          <Link href="/" className="hover:text-white transition-colors">&larr; Back to home</Link>
+          <Link href="/?lang=en" className="hover:text-white transition-colors">&larr; Back to home</Link>
           <Link href="/confidentialite" className="hover:text-white transition-colors">Fran&ccedil;ais &rarr;</Link>
         </div>
       </main>

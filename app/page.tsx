@@ -580,7 +580,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <a
-                href={APP_URL}
+                href={`${APP_URL}?subscribe=essentiel`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center shimmer-btn text-white font-bold py-3 rounded-xl"
@@ -605,7 +605,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <a
-                href={APP_URL}
+                href={`${APP_URL}?subscribe=premium`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block text-center bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity"

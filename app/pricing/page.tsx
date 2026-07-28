@@ -145,12 +145,16 @@ export default function PricingPage() {
   const itemRefs   = useRef<(HTMLButtonElement | null)[]>([])
   const t = T[lang]
 
-  // Lecture du param ?lang=
+  // Lecture du param ?lang= puis localStorage
   useEffect(() => {
     const params    = new URLSearchParams(window.location.search)
     const langParam = params.get('lang')
     if (SUPPORTED_LANGUAGES.some(l => l.code === langParam)) {
       setLang(langParam as Lang)
+      localStorage.setItem('eldaana_lang', langParam as string)
+    } else {
+      const stored = localStorage.getItem('eldaana_lang')
+      if (stored === 'fr' || stored === 'en') setLang(stored)
     }
   }, [])
 
@@ -255,6 +259,7 @@ export default function PricingPage() {
                     onMouseDown={(e) => {
                       e.preventDefault()
                       setLang(l.code)
+                      localStorage.setItem('eldaana_lang', l.code)
                       setLangOpen(false)
                     }}
                     onKeyDown={(e) => handleItemKeyDown(e, idx)}

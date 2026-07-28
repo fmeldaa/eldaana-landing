@@ -153,6 +153,10 @@ export default function LandingPage() {
     const langParam = params.get('lang')
     if (SUPPORTED_LANGUAGES.some(l => l.code === langParam)) {
       setLang(langParam as Lang)
+      localStorage.setItem('eldaana_lang', langParam as string)
+    } else {
+      const stored = localStorage.getItem('eldaana_lang')
+      if (stored === 'fr' || stored === 'en') setLang(stored)
     }
   }, [])
 
@@ -275,6 +279,7 @@ export default function LandingPage() {
                     onMouseDown={(e) => {
                       e.preventDefault()
                       setLang(l.code)
+                      localStorage.setItem('eldaana_lang', l.code)
                       setLangOpen(false)
                     }}
                     onKeyDown={(e) => handleItemKeyDown(e, idx)}

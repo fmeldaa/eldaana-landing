@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 const T = {
   fr: {
     nav_try: 'Essayer gratuitement',
+    nav_pricing: 'Tarifs',
     hero_tagline: 'Eldaana sait ce dont tu as besoin.',
     hero_tagline2: 'Avant même que tu le saches.',
     hero_sub: "L'assistant IA personnel qui prédit ton humeur, anticipe tes besoins et simplifie chaque matin.",
@@ -48,45 +49,8 @@ const T = {
     t3_text: '"Les alertes transport du matin m\'ont sauvé la mise 3 fois en une semaine. Et les messages positifs me donnent vraiment de l\'énergie."',
     t3_name: 'Marc, 41 ans — Chef de projet',
 
-    pricing_title: 'Simple et honnête',
-    pricing_free_title: 'Découverte',
-    pricing_free_price: '0€',
-    pricing_free_per: '',
-    pricing_free_desc: 'Pour découvrir Eldaana',
-    pricing_free_f1: 'Chat illimité texte',
-    pricing_free_f2: 'Météo du matin',
-    pricing_free_f3: 'Profil de base',
-    pricing_free_f4: 'Prédictions fun (1/jour)',
-    pricing_free_cta: 'Commencer gratuitement',
-    pricing_essential_title: 'Audio + Texte',
-    pricing_essential_price: '9,99€',
-    pricing_essential_per: '/mois',
-    pricing_essential_desc: 'Le quotidien simplifié',
-    pricing_essential_f1: 'Tout le Découverte +',
-    pricing_essential_f2: 'Eldaana parle (audio TTS)',
-    pricing_essential_f3: '3 voix au choix',
-    pricing_essential_f4: 'Mode vocal (120 min/mois)',
-    pricing_essential_f5: 'Scores journaliers IA',
-    pricing_essential_f6: 'Alertes transport temps réel',
-    pricing_essential_f7: 'Suivi budget & dépenses',
-    pricing_essential_cta: 'Passer Essentiel',
-    pricing_essential_badge: '🔥 Le plus populaire',
-    pricing_premium_title: 'Conversation vocale en temps réel',
-    pricing_premium_price: '29,99€',
-    pricing_premium_per: '/mois',
-    pricing_premium_desc: 'Pour le plein potentiel d\'Eldaana',
-    pricing_premium_f1: 'Tout Essentiel +',
-    pricing_premium_f2: 'Conversation live temps réel',
-    pricing_premium_f3: '7 voix au choix',
-    pricing_premium_f4: 'Voix illimitée',
-    pricing_premium_f5: 'Forecast 7j & 30j',
-    pricing_premium_f6: 'Facteurs détaillés & tendances',
-    pricing_premium_f7: 'Accès bêta en priorité',
-    pricing_premium_cta: 'Passer Premium ✨',
-    pricing_badge: '🔥 Le plus populaire',
-
     waitlist_title: 'Sois parmi les premiers',
-    waitlist_sub: 'Rejoins la liste d\'attente et accède en priorité à Eldaana Premium — gratuitement pendant 3 mois.',
+    waitlist_sub: 'Rejoins la liste d\'attente et accède à Eldaana Conversation — 3 mois offerts.',
     waitlist_placeholder: 'ton@email.com',
     waitlist_cta: 'Je rejoins la liste →',
     waitlist_success: '🎉 Tu es sur la liste ! On te prévient dès que c\'est prêt.',
@@ -101,6 +65,7 @@ const T = {
   },
   en: {
     nav_try: 'Try for free',
+    nav_pricing: 'Pricing',
     hero_tagline: 'Eldaana knows what you need.',
     hero_tagline2: 'Before you do.',
     hero_sub: 'The personal AI assistant that predicts your mood, anticipates your needs and simplifies every morning.',
@@ -143,45 +108,8 @@ const T = {
     t3_text: '"The morning transport alerts saved me 3 times in one week. And the positive messages genuinely give me energy."',
     t3_name: 'Marc, 41 — Project Manager',
 
-    pricing_title: 'Simple and honest',
-    pricing_free_title: 'Discovery',
-    pricing_free_price: '€0',
-    pricing_free_per: '',
-    pricing_free_desc: 'Discover Eldaana',
-    pricing_free_f1: 'Unlimited text chat',
-    pricing_free_f2: 'Morning weather',
-    pricing_free_f3: 'Basic profile',
-    pricing_free_f4: 'Fun predictions (1/day)',
-    pricing_free_cta: 'Start for free',
-    pricing_essential_title: 'Audio + Text',
-    pricing_essential_price: '€9.99',
-    pricing_essential_per: '/month',
-    pricing_essential_desc: 'Your daily life simplified',
-    pricing_essential_f1: 'Everything in Discovery +',
-    pricing_essential_f2: 'Eldaana speaks (audio TTS)',
-    pricing_essential_f3: '3 voices to choose from',
-    pricing_essential_f4: 'Voice mode (120 min/month)',
-    pricing_essential_f5: 'Daily AI scores',
-    pricing_essential_f6: 'Real-time transit alerts',
-    pricing_essential_f7: 'Budget & expense tracking',
-    pricing_essential_cta: 'Go Essentiel',
-    pricing_essential_badge: '🔥 Most popular',
-    pricing_premium_title: 'Live voice conversation',
-    pricing_premium_price: '€29.99',
-    pricing_premium_per: '/month',
-    pricing_premium_desc: 'Eldaana\'s full potential',
-    pricing_premium_f1: 'Everything in Audio + Text +',
-    pricing_premium_f2: 'Live real-time conversation',
-    pricing_premium_f3: '7 voices to choose from',
-    pricing_premium_f4: 'Unlimited voice',
-    pricing_premium_f5: '7-day & 30-day forecast',
-    pricing_premium_f6: 'Detailed factors & trends',
-    pricing_premium_f7: 'Priority beta access',
-    pricing_premium_cta: 'Go Premium ✨',
-    pricing_badge: '🔥 Most popular',
-
     waitlist_title: 'Be among the first',
-    waitlist_sub: 'Join the waitlist and get priority access to Eldaana Premium — free for 3 months.',
+    waitlist_sub: 'Join the waitlist and get early access to Eldaana Conversation — 3 months on us.',
     waitlist_placeholder: 'your@email.com',
     waitlist_cta: 'Join the list →',
     waitlist_success: '🎉 You\'re on the list! We\'ll notify you as soon as it\'s ready.',
@@ -364,6 +292,12 @@ export default function LandingPage() {
             )}
           </div>
           <a
+            href="/pricing"
+            className="hidden sm:block text-sm text-gray-400 hover:text-white font-medium transition-colors"
+          >
+            {t.nav_pricing}
+          </a>
+          <a
             href={APP_URL}
             target="_blank"
             rel="noopener noreferrer"
@@ -525,95 +459,6 @@ export default function LandingPage() {
                 <p className="text-purple-400 text-sm font-semibold">— {item.name}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRICING ── */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-16">
-            {t.pricing_title}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            {/* Free */}
-            <div className="glass rounded-3xl p-8 flex flex-col">
-              <div className="text-gray-400 font-semibold mb-1">{t.pricing_free_title}</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black">{t.pricing_free_price}</span>
-              </div>
-              <div className="text-gray-500 text-sm mb-6">{t.pricing_free_desc}</div>
-              <ul className="space-y-3 flex-1 mb-8">
-                {[t.pricing_free_f1, t.pricing_free_f2, t.pricing_free_f3, t.pricing_free_f4].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                    <span className="text-green-400">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={APP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center glass border border-white/15 text-white font-semibold py-3 rounded-xl hover:bg-white/5 transition-colors"
-              >
-                {t.pricing_free_cta}
-              </a>
-            </div>
-
-            {/* Essentiel — Le plus populaire */}
-            <div className="relative rounded-3xl p-8 flex flex-col bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30">
-              <div className="absolute -top-3 right-6 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                {t.pricing_essential_badge}
-              </div>
-              <div className="gradient-text font-semibold mb-1">{t.pricing_essential_title}</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black text-white">{t.pricing_essential_price}</span>
-                <span className="text-gray-400 mb-2">{t.pricing_essential_per}</span>
-              </div>
-              <div className="text-gray-400 text-sm mb-6">{t.pricing_essential_desc}</div>
-              <ul className="space-y-3 flex-1 mb-8">
-                {[t.pricing_essential_f1, t.pricing_essential_f2, t.pricing_essential_f3, t.pricing_essential_f4, t.pricing_essential_f5, t.pricing_essential_f6, t.pricing_essential_f7].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-200">
-                    <span className="text-purple-400">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={`${APP_URL}?subscribe=essentiel`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center shimmer-btn text-white font-bold py-3 rounded-xl"
-              >
-                {t.pricing_essential_cta}
-              </a>
-            </div>
-
-            {/* Premium */}
-            <div className="relative rounded-3xl p-8 flex flex-col bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30">
-              <div className="text-amber-400 font-semibold mb-1">{t.pricing_premium_title}</div>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black text-white">{t.pricing_premium_price}</span>
-                <span className="text-gray-400 mb-2">{t.pricing_premium_per}</span>
-              </div>
-              <div className="text-gray-400 text-sm mb-6">{t.pricing_premium_desc}</div>
-              <ul className="space-y-3 flex-1 mb-8">
-                {[t.pricing_premium_f1, t.pricing_premium_f2, t.pricing_premium_f3, t.pricing_premium_f4, t.pricing_premium_f5, t.pricing_premium_f6, t.pricing_premium_f7].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-200">
-                    <span className="text-amber-400">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={`${APP_URL}?subscribe=premium`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-center bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity"
-              >
-                {t.pricing_premium_cta}
-              </a>
-            </div>
-
           </div>
         </div>
       </section>

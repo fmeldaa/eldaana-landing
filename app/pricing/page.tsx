@@ -11,6 +11,7 @@ const STRIPE_CONVERSATION  = 'https://buy.stripe.com/test_dRmfZb8We0ek6Ts6XL4F20
 const T = {
   fr: {
     nav_try: 'Essayer gratuitement',
+    nav_pricing: 'Tarifs',
 
     title:    'Ta présence, à ton rythme',
     subtitle: 'Trois façons d\'expérimenter Eldaana',
@@ -68,6 +69,7 @@ const T = {
   },
   en: {
     nav_try: 'Try for free',
+    nav_pricing: 'Pricing',
 
     title:    'Your presence, at your pace',
     subtitle: 'Three ways to experience Eldaana',
@@ -269,6 +271,13 @@ export default function PricingPage() {
               </div>
             )}
           </div>
+          <a
+            href="/pricing"
+            aria-current="page"
+            className="hidden sm:block text-sm text-white font-medium"
+          >
+            {t.nav_pricing}
+          </a>
           <a
             href={APP_URL}
             target="_blank"

@@ -35,11 +35,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Idempotence — rejeter les events déjà traités
+  // .maybeSingle() retourne null proprement si 0 résultats (single() throw)
   const { data: existing } = await supabase
     .from('stripe_events_processed')
     .select('event_id')
     .eq('event_id', event.id)
-    .single()
+    .maybeSingle()
 
   if (existing) {
     return NextResponse.json({ received: true, idempotent: true })
@@ -88,12 +89,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log(`[stripe-webhook] checkout completed — email=${email}, tier=${tier}`)
 
-  // Recherche d'un profil existant par email (champ jsonb data->>'email')
+  // Recherche par email dans les 4 clés possibles (OAuth crée google_email/fb_email/li_email).
+  // .filter() : syntaxe PostgREST v12+ pour chemins JSONB (eq() ne supporte pas data->>key).
+  // .maybeSingle() : retourne null si 0 résultats (single() throw → casse la branche création).
   const { data: existing } = await supabase
     .from('profiles_eldaana')
     .select('user_id, data')
-    .eq('data->>email', email)
-    .single()
+    .or(
+      `data->>email.eq.${email},` +
+      `data->>google_email.eq.${email},` +
+      `data->>fb_email.eq.${email},` +
+      `data->>li_email.eq.${email}`
+    )
+    .maybeSingle()
 
   if (existing) {
     // Merge : préserver tous les champs existants, écraser uniquement tier + customer
@@ -137,8 +145,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const { data: profile } = await supabase
     .from('profiles_eldaana')
     .select('user_id, data')
-    .eq('data->>stripe_customer_id', customerId)
-    .single()
+    .filter('data->>stripe_customer_id', 'eq', customerId)
+    .maybeSingle()
 
   if (!profile) {
     console.warn(

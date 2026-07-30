@@ -16,33 +16,45 @@ const supabase = createClient(
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
-// Recherche séquentielle sur les 4 champs email possibles.
-// .or() avec chemins JSONB compacts (data->>email.eq...) n'est pas supporté
-// par PostgREST v12+ — le `>` dans l'URL casse le parsing → PGRST125.
-// 4 requêtes séquentielles : overhead négligeable, syntaxe robuste.
+// Fetch + filter côté JS : contourne PGRST125 (PostgREST v12+ refuse
+// .filter('data->>field') quand la clé n'existe dans aucune ligne).
+// Acceptable en early stage (peu de comptes). À migrer vers RPC PostgreSQL
+// custom quand > 1000 comptes.
 async function findProfileByEmail(email: string) {
-  const emailFields = ['email', 'google_email', 'fb_email', 'li_email']
+  const { data: profiles, error } = await supabase
+    .from('profiles_eldaana')
+    .select('user_id, data')
 
-  for (const field of emailFields) {
-    console.log(`[stripe-webhook] searching profile by ${field}:`, email)
-    const { data, error } = await supabase
-      .from('profiles_eldaana')
-      .select('user_id, data')
-      .filter(`data->>${field}`, 'eq', email)
-      .maybeSingle()
-
-    if (error) {
-      console.error(`[stripe-webhook] error searching by ${field}:`, error)
-      continue
-    }
-    if (data) {
-      console.log(`[stripe-webhook] found profile via ${field} — user_id:`, data.user_id)
-      return data
-    }
+  if (error) {
+    console.error('[stripe-webhook] error fetching profiles:', error)
+    return null
   }
 
-  console.log('[stripe-webhook] no existing profile found for email:', email)
-  return null
+  if (!profiles || profiles.length === 0) {
+    console.log('[stripe-webhook] profiles table is empty')
+    return null
+  }
+
+  const emailFields = ['email', 'google_email', 'fb_email', 'li_email']
+  const match = profiles.find(
+    p => p.data && emailFields.some(field => p.data[field] === email)
+  )
+
+  return match || null
+}
+
+async function findProfileByStripeCustomerId(customerId: string) {
+  const { data: profiles, error } = await supabase
+    .from('profiles_eldaana')
+    .select('user_id, data')
+
+  if (error) {
+    console.error('[stripe-webhook] error fetching profiles:', error)
+    return null
+  }
+
+  if (!profiles) return null
+  return profiles.find(p => p.data?.stripe_customer_id === customerId) || null
 }
 
 export async function POST(req: NextRequest) {
@@ -149,7 +161,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
     const { error } = await supabase
       .from('profiles_eldaana')
-      .insert({ user_id: newUserId, data: newData, updated_at: new Date().toISOString() })
+      .insert({
+        user_id: newUserId,
+        data: newData,
+        updated_at: new Date().toISOString(),
+      })
     if (error) throw error
     console.log(`[stripe-webhook] nouveau profil créé — user_id=${newUserId}`)
   }
@@ -161,11 +177,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
   console.log('[stripe-webhook] subscription deleted — searching customer:', customerId)
-  const { data: profile } = await supabase
-    .from('profiles_eldaana')
-    .select('user_id, data')
-    .filter('data->>stripe_customer_id', 'eq', customerId)
-    .maybeSingle()
+  const profile = await findProfileByStripeCustomerId(customerId)
 
   if (!profile) {
     console.warn(

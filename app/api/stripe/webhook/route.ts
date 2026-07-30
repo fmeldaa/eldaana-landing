@@ -16,45 +16,27 @@ const supabase = createClient(
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
-// Fetch + filter côté JS : contourne PGRST125 (PostgREST v12+ refuse
-// .filter('data->>field') quand la clé n'existe dans aucune ligne).
-// Acceptable en early stage (peu de comptes). À migrer vers RPC PostgreSQL
-// custom quand > 1000 comptes.
+// RPC PostgreSQL : évite PGRST125 — le SDK Supabase JS génère des URLs mal
+// encodées pour les chemins JSONB (data->>field). Via .rpc(), le SDK envoie
+// juste un nom de fonction + params JSON, sans construction d'URL JSONB.
 async function findProfileByEmail(email: string) {
-  const { data: profiles, error } = await supabase
-    .from('profiles_eldaana')
-    .select('user_id, data')
-
+  console.log('[stripe-webhook] rpc find_profile_by_email:', email)
+  const { data, error } = await supabase.rpc('find_profile_by_email', { p_email: email })
   if (error) {
-    console.error('[stripe-webhook] error fetching profiles:', error)
+    console.error('[stripe-webhook] rpc find_profile_by_email error:', error)
     return null
   }
-
-  if (!profiles || profiles.length === 0) {
-    console.log('[stripe-webhook] profiles table is empty')
-    return null
-  }
-
-  const emailFields = ['email', 'google_email', 'fb_email', 'li_email']
-  const match = profiles.find(
-    p => p.data && emailFields.some(field => p.data[field] === email)
-  )
-
-  return match || null
+  return data && data.length > 0 ? data[0] : null
 }
 
 async function findProfileByStripeCustomerId(customerId: string) {
-  const { data: profiles, error } = await supabase
-    .from('profiles_eldaana')
-    .select('user_id, data')
-
+  console.log('[stripe-webhook] rpc find_profile_by_stripe_customer:', customerId)
+  const { data, error } = await supabase.rpc('find_profile_by_stripe_customer', { p_customer_id: customerId })
   if (error) {
-    console.error('[stripe-webhook] error fetching profiles:', error)
+    console.error('[stripe-webhook] rpc find_profile_by_stripe_customer error:', error)
     return null
   }
-
-  if (!profiles) return null
-  return profiles.find(p => p.data?.stripe_customer_id === customerId) || null
+  return data && data.length > 0 ? data[0] : null
 }
 
 export async function POST(req: NextRequest) {

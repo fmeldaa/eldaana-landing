@@ -16,6 +16,35 @@ const supabase = createClient(
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
+// Recherche séquentielle sur les 4 champs email possibles.
+// .or() avec chemins JSONB compacts (data->>email.eq...) n'est pas supporté
+// par PostgREST v12+ — le `>` dans l'URL casse le parsing → PGRST125.
+// 4 requêtes séquentielles : overhead négligeable, syntaxe robuste.
+async function findProfileByEmail(email: string) {
+  const emailFields = ['email', 'google_email', 'fb_email', 'li_email']
+
+  for (const field of emailFields) {
+    console.log(`[stripe-webhook] searching profile by ${field}:`, email)
+    const { data, error } = await supabase
+      .from('profiles_eldaana')
+      .select('user_id, data')
+      .filter(`data->>${field}`, 'eq', email)
+      .maybeSingle()
+
+    if (error) {
+      console.error(`[stripe-webhook] error searching by ${field}:`, error)
+      continue
+    }
+    if (data) {
+      console.log(`[stripe-webhook] found profile via ${field} — user_id:`, data.user_id)
+      return data
+    }
+  }
+
+  console.log('[stripe-webhook] no existing profile found for email:', email)
+  return null
+}
+
 export async function POST(req: NextRequest) {
   // 1. Body brut + signature (req.text() préserve les bytes exacts, indispensable)
   const body = await req.text()
@@ -35,14 +64,13 @@ export async function POST(req: NextRequest) {
   }
 
   // 3. Idempotence — rejeter les events déjà traités
-  // .maybeSingle() retourne null proprement si 0 résultats (single() throw)
-  const { data: existing } = await supabase
+  const { data: alreadyProcessed } = await supabase
     .from('stripe_events_processed')
     .select('event_id')
     .eq('event_id', event.id)
     .maybeSingle()
 
-  if (existing) {
+  if (alreadyProcessed) {
     return NextResponse.json({ received: true, idempotent: true })
   }
 
@@ -88,23 +116,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   console.log(`[stripe-webhook] checkout completed — email=${email}, tier=${tier}`)
+  console.log('[stripe-webhook] searching profile for email:', email)
 
-  // Recherche par email dans les 4 clés possibles (OAuth crée google_email/fb_email/li_email).
-  // .filter() : syntaxe PostgREST v12+ pour chemins JSONB (eq() ne supporte pas data->>key).
-  // .maybeSingle() : retourne null si 0 résultats (single() throw → casse la branche création).
-  const { data: existing } = await supabase
-    .from('profiles_eldaana')
-    .select('user_id, data')
-    .or(
-      `data->>email.eq.${email},` +
-      `data->>google_email.eq.${email},` +
-      `data->>fb_email.eq.${email},` +
-      `data->>li_email.eq.${email}`
-    )
-    .maybeSingle()
+  const existing = await findProfileByEmail(email)
+  console.log('[stripe-webhook] found profile:', existing ? existing.user_id : 'none')
 
   if (existing) {
-    // Merge : préserver tous les champs existants, écraser uniquement tier + customer
+    console.log('[stripe-webhook] merging tier into existing profile')
     const updatedData = {
       ...existing.data,
       conversation_status: 'active',
@@ -119,7 +137,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     if (error) throw error
     console.log(`[stripe-webhook] profil mis à jour — user_id=${existing.user_id}`)
   } else {
-    // Nouveau compte (sera enrichi par lien magique au Palier C.1)
+    console.log('[stripe-webhook] creating new profile')
     const newUserId = crypto.randomUUID()
     const newData = {
       user_id: newUserId,
@@ -142,6 +160,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
+  console.log('[stripe-webhook] subscription deleted — searching customer:', customerId)
   const { data: profile } = await supabase
     .from('profiles_eldaana')
     .select('user_id, data')

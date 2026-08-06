@@ -5,6 +5,8 @@ export const runtime = 'nodejs'
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { v4 as uuidv4 } from 'uuid'
+import { sendPaymentConfirmEmail } from '@/app/lib/email'
 
 // Clients initialisés au niveau module (réutilisés entre invocations Lambda)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -115,6 +117,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const existing = await findProfileByEmail(email)
   console.log('[stripe-webhook] found profile:', existing ? existing.user_id : 'none')
 
+  let resolvedUserId: string
+
   if (existing) {
     console.log('[stripe-webhook] merging tier into existing profile')
     const updatedData = {
@@ -129,12 +133,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       .update({ data: updatedData, updated_at: new Date().toISOString() })
       .eq('user_id', existing.user_id)
     if (error) throw error
-    console.log(`[stripe-webhook] profil mis à jour — user_id=${existing.user_id}`)
+    resolvedUserId = existing.user_id
+    console.log(`[stripe-webhook] profil mis à jour — user_id=${resolvedUserId}`)
   } else {
     console.log('[stripe-webhook] creating new profile')
-    const newUserId = crypto.randomUUID()
+    resolvedUserId = uuidv4()
     const newData = {
-      user_id: newUserId,
+      user_id: resolvedUserId,
       email,
       conversation_status: 'active',
       stripe_customer_id: customerId,
@@ -144,12 +149,35 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const { error } = await supabase
       .from('profiles_eldaana')
       .insert({
-        user_id: newUserId,
+        user_id: resolvedUserId,
         data: newData,
         updated_at: new Date().toISOString(),
       })
     if (error) throw error
-    console.log(`[stripe-webhook] nouveau profil créé — user_id=${newUserId}`)
+    console.log(`[stripe-webhook] nouveau profil créé — user_id=${resolvedUserId}`)
+  }
+
+  // Envoyer l'email de confirmation paiement avec magic link inclus
+  try {
+    const magicToken = uuidv4()
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    await supabase.from('magic_links').insert({
+      token: magicToken,
+      user_id: resolvedUserId,
+      email,
+      expires_at: expiresAt,
+    })
+    const magicUrl = `https://eldaana.com/api/auth/magic?token=${magicToken}`
+    const lang: 'fr' | 'en' = session.locale?.startsWith('en') ? 'en' : 'fr'
+    const tierLabel =
+      tier === 'audio_text'
+        ? (lang === 'fr' ? 'Audio & Texte' : 'Audio & Text')
+        : 'Conversation'
+    await sendPaymentConfirmEmail(email, magicUrl, tierLabel, lang)
+    console.log(`[stripe-webhook] email confirmation envoyé — email=${email}`)
+  } catch (err) {
+    // Non bloquant : l'email peut échouer sans invalider le paiement
+    console.error('[stripe-webhook] email confirmation error:', err)
   }
 }
 

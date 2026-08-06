@@ -138,6 +138,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripe_customer_id: customerId,
       tier,
       tier_since: new Date().toISOString(),
+      onboarding_complete: true,
     }
     const { error } = await getSupabase()
       .from('profiles_eldaana')
@@ -156,6 +157,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripe_customer_id: customerId,
       tier,
       tier_since: new Date().toISOString(),
+      onboarding_complete: true,
     }
     const { error } = await getSupabase()
       .from('profiles_eldaana')

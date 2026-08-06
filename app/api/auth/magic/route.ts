@@ -1,14 +1,19 @@
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import jwt from 'jsonwebtoken'
 import { sendMagicLinkEmail } from '@/app/lib/email'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Lazy : évite le crash au build quand les env vars ne sont pas définies localement.
+// Retourné en `any` : pas de types Supabase générés pour ce projet.
+let _supabase: ReturnType<typeof createClient> | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSupabase(): any {
+  if (!_supabase) _supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  return _supabase
+}
 
 // ── POST — Demander un magic link ─────────────────────────────────────────────
 
@@ -22,7 +27,7 @@ export async function POST(req: NextRequest) {
   const normalizedEmail = email.trim().toLowerCase()
 
   // Rate limiting : max 3 demandes par email par heure
-  const { data: recent } = await supabase
+  const { data: recent } = await getSupabase()
     .from('magic_links')
     .select('created_at')
     .eq('email', normalizedEmail)
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Chercher le profil via RPC (évite PGRST125)
-  const { data: profiles } = await supabase.rpc('find_profile_by_email', {
+  const { data: profiles } = await getSupabase().rpc('find_profile_by_email', {
     p_email: normalizedEmail,
   })
   const profile = profiles && profiles.length > 0 ? profiles[0] : null
@@ -52,7 +57,7 @@ export async function POST(req: NextRequest) {
   const token = uuidv4()
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
 
-  const { error: insertError } = await supabase.from('magic_links').insert({
+  const { error: insertError } = await getSupabase().from('magic_links').insert({
     token,
     user_id: profile.user_id,
     email: normalizedEmail,
@@ -87,7 +92,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Chercher le token dans magic_links
-  const { data: link, error } = await supabase
+  const { data: link, error } = await getSupabase()
     .from('magic_links')
     .select('token, user_id, email, expires_at, used_at')
     .eq('token', token)
@@ -108,7 +113,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Marquer comme utilisé
-  await supabase
+  await getSupabase()
     .from('magic_links')
     .update({ used_at: new Date().toISOString() })
     .eq('token', token)

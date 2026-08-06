@@ -1,6 +1,7 @@
 // Node.js runtime obligatoire : Edge Runtime ne supporte pas req.text() avec
 // les contraintes de signature Stripe (raw body requis pour constructEvent).
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
@@ -8,22 +9,32 @@ import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
 import { sendPaymentConfirmEmail } from '@/app/lib/email'
 
-// Clients initialisés au niveau module (réutilisés entre invocations Lambda)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Lazy init : évite le crash au build Next.js quand les env vars ne sont pas
+// définies au moment de la collecte des pages statiques.
+let _stripe: Stripe | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getStripe(): any {
+  if (!_stripe) _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+  return _stripe
+}
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // service_role, PAS anon
-)
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+let _supabase: ReturnType<typeof createClient> | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSupabase(): any {
+  if (!_supabase)
+    _supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY! // service_role, PAS anon
+    )
+  return _supabase
+}
 
 // RPC PostgreSQL : évite PGRST125 — le SDK Supabase JS génère des URLs mal
 // encodées pour les chemins JSONB (data->>field). Via .rpc(), le SDK envoie
 // juste un nom de fonction + params JSON, sans construction d'URL JSONB.
 async function findProfileByEmail(email: string) {
   console.log('[stripe-webhook] rpc find_profile_by_email:', email)
-  const { data, error } = await supabase.rpc('find_profile_by_email', { p_email: email })
+  const { data, error } = await getSupabase().rpc('find_profile_by_email', { p_email: email })
   if (error) {
     console.error('[stripe-webhook] rpc find_profile_by_email error:', error)
     return null
@@ -33,7 +44,7 @@ async function findProfileByEmail(email: string) {
 
 async function findProfileByStripeCustomerId(customerId: string) {
   console.log('[stripe-webhook] rpc find_profile_by_stripe_customer:', customerId)
-  const { data, error } = await supabase.rpc('find_profile_by_stripe_customer', { p_customer_id: customerId })
+  const { data, error } = await getSupabase().rpc('find_profile_by_stripe_customer', { p_customer_id: customerId })
   if (error) {
     console.error('[stripe-webhook] rpc find_profile_by_stripe_customer error:', error)
     return null
@@ -53,14 +64,14 @@ export async function POST(req: NextRequest) {
   // 2. Vérification signature (anti-spoofing)
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    event = getStripe().webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err) {
     console.error('[stripe-webhook] Invalid signature:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
   // 3. Idempotence — rejeter les events déjà traités
-  const { data: alreadyProcessed } = await supabase
+  const { data: alreadyProcessed } = await getSupabase()
     .from('stripe_events_processed')
     .select('event_id')
     .eq('event_id', event.id)
@@ -85,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Marquer l'event comme traité
-    await supabase.from('stripe_events_processed').insert({
+    await getSupabase().from('stripe_events_processed').insert({
       event_id: event.id,
       event_type: event.type,
       processed_at: new Date().toISOString(),
@@ -128,7 +139,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       tier,
       tier_since: new Date().toISOString(),
     }
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('profiles_eldaana')
       .update({ data: updatedData, updated_at: new Date().toISOString() })
       .eq('user_id', existing.user_id)
@@ -146,7 +157,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       tier,
       tier_since: new Date().toISOString(),
     }
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('profiles_eldaana')
       .insert({
         user_id: resolvedUserId,
@@ -161,7 +172,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   try {
     const magicToken = uuidv4()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
-    await supabase.from('magic_links').insert({
+    await getSupabase().from('magic_links').insert({
       token: magicToken,
       user_id: resolvedUserId,
       email,
@@ -201,7 +212,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     conversation_status: 'inactive',
     tier_ended: new Date().toISOString(),
   }
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('profiles_eldaana')
     .update({ data: updatedData, updated_at: new Date().toISOString() })
     .eq('user_id', profile.user_id)

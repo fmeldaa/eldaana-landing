@@ -1,6 +1,12 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
+// Initialisation lazy : évite le crash au build Next.js quand RESEND_API_KEY
+// n'est pas définie localement (Vercel l'injecte uniquement au runtime).
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!)
+  return _resend
+}
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
@@ -120,7 +126,7 @@ export async function sendMagicLinkEmail(email: string, url: string, lang: 'fr' 
   const from = lang === 'fr' ? 'bonjour@eldaana.com' : 'hello@eldaana.com'
   const subject = lang === 'fr' ? 'Ton lien de connexion à Eldaana' : 'Your Eldaana login link'
   const html = lang === 'fr' ? magicLinkFR(url) : magicLinkEN(url)
-  return resend.emails.send({ from, to: email, subject, html })
+  return getResend().emails.send({ from, to: email, subject, html })
 }
 
 export async function sendPaymentConfirmEmail(
@@ -135,5 +141,5 @@ export async function sendPaymentConfirmEmail(
       ? `Bienvenue dans Eldaana ${tierLabel} 🎧`
       : `Welcome to Eldaana ${tierLabel} 🎧`
   const html = lang === 'fr' ? paymentConfirmFR(url, tierLabel) : paymentConfirmEN(url, tierLabel)
-  return resend.emails.send({ from, to: email, subject, html })
+  return getResend().emails.send({ from, to: email, subject, html })
 }

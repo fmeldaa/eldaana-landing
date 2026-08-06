@@ -102,21 +102,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/auth/expired', req.url))
   }
 
-  // Déjà utilisé
-  if (link.used_at) {
-    return NextResponse.redirect(new URL('/auth/used', req.url))
-  }
-
-  // Expiré
+  // Expiré (vérifier avant used_at car un token expiré + used reste expired)
   if (new Date(link.expires_at) < new Date()) {
     return NextResponse.redirect(new URL('/auth/expired', req.url))
   }
 
-  // Marquer comme utilisé
-  await getSupabase()
-    .from('magic_links')
-    .update({ used_at: new Date().toISOString() })
-    .eq('token', token)
+  // Token déjà utilisé : grace period 60 s pour absorber les pré-scans Gmail / antivirus.
+  // Ces scanners font un GET automatique quelques secondes après réception de l'email,
+  // avant même que l'utilisateur clique. Sans cette logique, le token serait consommé
+  // par le scanner et le vrai clic atterrirait sur /auth/used.
+  if (link.used_at) {
+    const secondsSinceUsed = (Date.now() - new Date(link.used_at).getTime()) / 1000
+    if (secondsSinceUsed >= 60) {
+      // Vraie double utilisation après la grace period → refus
+      return NextResponse.redirect(new URL('/auth/used', req.url))
+    }
+    // Dans les 60 s : pré-scan détecté, on re-génère une session pour le vrai clic
+    console.log(`[magic] pre-scan grace (${Math.round(secondsSinceUsed)}s), re-issuing session`)
+  } else {
+    // Premier GET : marquer comme utilisé
+    await getSupabase()
+      .from('magic_links')
+      .update({ used_at: new Date().toISOString() })
+      .eq('token', token)
+  }
 
   // Générer un session JWT court terme (5 min)
   const sessionToken = jwt.sign(

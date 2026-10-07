@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
 const APP_URL              = 'https://eldaana.streamlit.app'
-const STRIPE_AUDIO_TEXT    = 'https://buy.stripe.com/test_28EeV7egy3qw3Hg6XL4F203'
 const STRIPE_CONVERSATION  = 'https://buy.stripe.com/test_dRmfZb8We0ek6Ts6XL4F202'
 
 // ── Traductions ────────────────────────────────────────────────────────────────
@@ -14,7 +13,7 @@ const T = {
     nav_pricing: 'Tarifs',
 
     title:    'Ta présence, à ton rythme',
-    subtitle: 'Trois façons d\'expérimenter Eldaana',
+    subtitle: 'Deux façons d\'expérimenter Eldaana',
 
     // Découverte
     discovery_name:     'Découverte',
@@ -28,28 +27,14 @@ const T = {
     ],
     discovery_cta: 'Essayer sur Eldaana →',
 
-    // Audio & Texte
-    audio_text_badge:    'Le plus populaire',
-    audio_text_name:     'Audio & Texte',
-    audio_text_price:    '9,99€',
-    audio_text_per:      '/mois',
-    audio_text_tagline:  'Ta présence quotidienne',
-    audio_text_features: [
-      'Tout Découverte',
-      'Voix Eldaana (Nova, Shimmer)',
-      'Conversations illimitées',
-      'Prédictions personnalisées',
-      'Mémoire persistante',
-    ],
-    audio_text_cta: 'Choisir Audio & Texte →',
-
     // Conversation
     conversation_name:     'Conversation',
     conversation_price:    '29,99€',
     conversation_per:      '/mois',
     conversation_tagline:  'Ta présence en temps réel',
     conversation_features: [
-      'Tout Audio & Texte',
+      'Tout Découverte',
+      'Voix Eldaana dans le chat (Nova, Shimmer)',
       'Conversation vocale temps réel',
       '4 voix Eldaana Live (Zephyr, Aoede, Kore, Leda)',
       'Prédictions avancées 30 jours',
@@ -72,7 +57,7 @@ const T = {
     nav_pricing: 'Pricing',
 
     title:    'Your presence, at your pace',
-    subtitle: 'Three ways to experience Eldaana',
+    subtitle: 'Two ways to experience Eldaana',
 
     // Discovery
     discovery_name:     'Discovery',
@@ -86,28 +71,14 @@ const T = {
     ],
     discovery_cta: 'Try Eldaana →',
 
-    // Audio & Text
-    audio_text_badge:    'Most popular',
-    audio_text_name:     'Audio & Text',
-    audio_text_price:    '€9.99',
-    audio_text_per:      '/month',
-    audio_text_tagline:  'Your daily presence',
-    audio_text_features: [
-      'Everything in Discovery',
-      'Eldaana voice (Nova, Shimmer)',
-      'Unlimited conversations',
-      'Personalized predictions',
-      'Persistent memory',
-    ],
-    audio_text_cta: 'Choose Audio & Text →',
-
     // Conversation
     conversation_name:     'Conversation',
     conversation_price:    '€29.99',
     conversation_per:      '/month',
     conversation_tagline:  'Your real-time presence',
     conversation_features: [
-      'Everything in Audio & Text',
+      'Everything in Discovery',
+      'Eldaana voice in the chat (Nova, Shimmer)',
       'Real-time voice conversation',
       '4 Eldaana Live voices (Zephyr, Aoede, Kore, Leda)',
       'Advanced 30-day predictions',
@@ -314,7 +285,7 @@ export default function PricingPage() {
 
       {/* ── PRICING CARDS ── */}
       <section className="pb-28 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
           {/* Carte 1 — Découverte */}
           <div className="glass rounded-3xl p-8 flex flex-col h-full">
@@ -340,35 +311,7 @@ export default function PricingPage() {
             </a>
           </div>
 
-          {/* Carte 2 — Audio & Texte — mise en avant */}
-          <div className="relative rounded-3xl p-8 flex flex-col h-full bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-purple-500/30">
-            <div className="absolute -top-3 right-6 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-              {t.audio_text_badge}
-            </div>
-            <div className="gradient-text font-semibold mb-1">{t.audio_text_name}</div>
-            <div className="flex items-end gap-1 mb-1">
-              <span className="text-4xl font-black text-white">{t.audio_text_price}</span>
-              <span className="text-gray-400 mb-2">{t.audio_text_per}</span>
-            </div>
-            <div className="text-gray-400 text-sm mb-6">{t.audio_text_tagline}</div>
-            <ul className="space-y-3 flex-1 mb-8">
-              {t.audio_text_features.map((f, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-gray-200">
-                  <span className="text-purple-400 flex-shrink-0">✓</span> {f}
-                </li>
-              ))}
-            </ul>
-            <a
-              href={STRIPE_AUDIO_TEXT}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-center shimmer-btn text-white font-bold py-3 rounded-xl"
-            >
-              {t.audio_text_cta}
-            </a>
-          </div>
-
-          {/* Carte 3 — Conversation */}
+          {/* Carte 2 — Conversation */}
           <div className="relative rounded-3xl p-8 flex flex-col h-full bg-gradient-to-br from-indigo-500/10 to-sky-500/10 border border-indigo-500/30">
             <div className="text-indigo-300 font-semibold mb-1">{t.conversation_name}</div>
             <div className="flex items-end gap-1 mb-1">

@@ -143,3 +143,67 @@ export async function sendPaymentConfirmEmail(
   const html = lang === 'fr' ? paymentConfirmFR(url, tierLabel) : paymentConfirmEN(url, tierLabel)
   return getResend().emails.send({ from, to: email, subject, html })
 }
+
+function legacyRefundFR(pricingUrl: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:40px 20px;background:#f9fafb}
+    .container{background:white;border-radius:16px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+    h1{font-size:24px;font-weight:700;margin:0 0 16px;color:#7c3aed}
+    p{line-height:1.6;color:#4b5563;font-size:15px}
+    .cta{display:inline-block;background:linear-gradient(135deg,#7c3aed,#6366f1);color:white!important;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;margin:24px 0;font-size:15px}
+    .footer{color:#9ca3af;font-size:13px;margin-top:32px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ton paiement a été remboursé</h1>
+    <p>Bonjour,</p>
+    <p>Nous avons remboursé ton paiement : l'offre <strong>Audio &amp; Texte</strong> n'est plus proposée, et aucun prélèvement ne suivra.</p>
+    <p>Si tu souhaites accéder à Eldaana Live, voici l'offre actuelle, <strong>Conversation</strong> à 29,99&nbsp;€/mois :</p>
+    <p style="text-align:center"><a href="${pricingUrl}" class="cta">Découvrir Conversation</a></p>
+    <p>Le remboursement apparaît sur ton relevé sous quelques jours, selon ta banque.</p>
+    <div class="footer">Merci pour ta confiance,<br/>Eldaana</div>
+  </div>
+</body>
+</html>`
+}
+
+function legacyRefundEN(pricingUrl: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:40px 20px;background:#f9fafb}
+    .container{background:white;border-radius:16px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+    h1{font-size:24px;font-weight:700;margin:0 0 16px;color:#7c3aed}
+    p{line-height:1.6;color:#4b5563;font-size:15px}
+    .cta{display:inline-block;background:linear-gradient(135deg,#7c3aed,#6366f1);color:white!important;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;margin:24px 0;font-size:15px}
+    .footer{color:#9ca3af;font-size:13px;margin-top:32px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Your payment has been refunded</h1>
+    <p>Hello,</p>
+    <p>We have refunded your payment: the <strong>Audio &amp; Text</strong> plan is no longer offered, and nothing further will be charged.</p>
+    <p>If you would like to access Eldaana Live, here is the current plan, <strong>Conversation</strong> at €29.99/month:</p>
+    <p style="text-align:center"><a href="${pricingUrl}" class="cta">Discover Conversation</a></p>
+    <p>The refund will show on your statement within a few days, depending on your bank.</p>
+    <div class="footer">Thank you for your trust,<br/>Eldaana</div>
+  </div>
+</body>
+</html>`
+}
+
+export async function sendLegacyTierRefundEmail(email: string, lang: 'fr' | 'en') {
+  const from = lang === 'fr' ? 'bonjour@eldaana.com' : 'hello@eldaana.com'
+  const subject = lang === 'fr' ? 'Ton paiement Eldaana a été remboursé' : 'Your Eldaana payment has been refunded'
+  const pricingUrl = 'https://eldaana.com/pricing?lang=' + lang
+  const html = lang === 'fr' ? legacyRefundFR(pricingUrl) : legacyRefundEN(pricingUrl)
+  return getResend().emails.send({ from, to: email, subject, html })
+}

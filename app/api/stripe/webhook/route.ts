@@ -7,7 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
-import { sendPaymentConfirmEmail } from '@/app/lib/email'
+import { sendPaymentConfirmEmail, sendLegacyTierRefundEmail } from '@/app/lib/email'
+import { isLegacyAudioTextSession, refuseLegacyAudioText } from '@/app/lib/legacyTier'
 
 // Lazy init : évite le crash au build Next.js quand les env vars ne sont pas
 // définies au moment de la collecte des pages statiques.
@@ -112,8 +113,17 @@ export async function POST(req: NextRequest) {
 // ── checkout.session.completed ─────────────────────────────────────────────
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  // ── Garde-fou : ancien tier Audio & Texte (9,99 €), retiré de l'offre ──────
+  // Refus silencieux : pas de profil créé ni activé, abonnement annulé, paiement
+  // remboursé, email d'explication. L'event est marqué traité par l'appelant.
+  // Une session Conversation (metadata 'conversation', 29,99 €) n'est jamais concernée.
+  if (isLegacyAudioTextSession(session)) {
+    await refuseLegacyAudioText(session, { stripe: getStripe(), sendEmail: sendLegacyTierRefundEmail })
+    return
+  }
+
   const email = session.customer_details?.email ?? session.customer_email
-  const tier = session.metadata?.tier         // "audio_text" | "conversation"
+  const tier = session.metadata?.tier         // "conversation"
   const customerId = session.customer as string
 
   if (!email || !tier) {
@@ -182,10 +192,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     })
     const magicUrl = `https://eldaana.com/api/auth/magic?token=${magicToken}`
     const lang: 'fr' | 'en' = session.locale?.startsWith('en') ? 'en' : 'fr'
-    const tierLabel =
-      tier === 'audio_text'
-        ? (lang === 'fr' ? 'Audio & Texte' : 'Audio & Text')
-        : 'Conversation'
+    const tierLabel = 'Conversation'
     await sendPaymentConfirmEmail(email, magicUrl, tierLabel, lang)
     console.log(`[stripe-webhook] email confirmation envoyé — email=${email}`)
   } catch (err) {

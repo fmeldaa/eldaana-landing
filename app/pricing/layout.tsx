@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Tarifs — Eldaana',
-  description: "Choisissez votre façon d'expérimenter Eldaana. Découverte gratuite, Audio & Texte 9,99€/mois, Conversation 29,99€/mois.",
+  description: "Choisissez votre façon d'expérimenter Eldaana. Découverte gratuite, Conversation 29,99€/mois.",
   openGraph: {
     title: 'Tarifs — Eldaana',
     description: "Choisissez votre façon d'expérimenter Eldaana.",

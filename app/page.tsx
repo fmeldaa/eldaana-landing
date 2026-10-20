@@ -124,7 +124,7 @@ const T = {
   },
 }
 
-const APP_URL = 'https://eldaana.streamlit.app'
+const APP_URL = 'https://eldaana.app'
 
 // ── Langues supportées — source unique de vérité ──────────────────────────────
 // Pour ajouter une langue : 1) ajouter ici, 2) ajouter T[code] ci-dessus.

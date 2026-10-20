@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 // ── Constantes ─────────────────────────────────────────────────────────────────
-const APP_URL              = 'https://eldaana.streamlit.app'
+const APP_URL              = 'https://eldaana.app'
 const STRIPE_CONVERSATION  = 'https://buy.stripe.com/test_dRmfZb8We0ek6Ts6XL4F202'
 
 // ── Traductions ────────────────────────────────────────────────────────────────

@@ -134,8 +134,8 @@ export async function GET(req: NextRequest) {
     { expiresIn: '5m' }
   )
 
-  // Rediriger vers Streamlit avec le token en param
-  const streamlitUrl = new URL('https://eldaana.streamlit.app/')
+  // Rediriger vers l'app (eldaana.app, Render) avec le token en param
+  const streamlitUrl = new URL('https://eldaana.app/')
   streamlitUrl.searchParams.set('session', sessionToken)
 
   return NextResponse.redirect(streamlitUrl)

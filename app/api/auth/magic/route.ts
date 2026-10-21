@@ -69,7 +69,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 
-  const magicUrl = `https://eldaana.com/api/auth/magic?token=${token}`
+  // Hôte www : eldaana.com (apex) redirige vers www, et Android ne suit pas les redirections
+  // pour vérifier les App Links (.well-known/assetlinks.json). Le lien ouvre donc l'APK.
+  const magicUrl = `https://www.eldaana.com/api/auth/magic?token=${token}`
   const resolvedLang: 'fr' | 'en' = lang === 'en' ? 'en' : 'fr'
 
   try {

@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.eldaana.app",
+    "sha256_cert_fingerprints": ["FB:A1:FD:BB:12:1C:CF:EE:65:CD:8B:4A:48:00:AD:11:73:1B:4D:15:5B:78:38:F8:2C:77:5E:FC:70:B4:AB:9E"]
+  }
+}]

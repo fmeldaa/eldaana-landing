@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 // ── Traductions ────────────────────────────────────────────────────────────────
 const T = {
   fr: {
-    nav_try: 'Ouvrir l'application',
+    nav_try: "Ouvrir l'application",
     footer_app: 'eldaana.app',
     nav_pricing: 'Tarifs',
     hero_tagline: 'Eldaana sait ce dont tu as besoin.',

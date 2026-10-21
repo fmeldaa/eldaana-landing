@@ -5,12 +5,13 @@ import { useState, useEffect, useRef } from 'react'
 // ── Traductions ────────────────────────────────────────────────────────────────
 const T = {
   fr: {
-    nav_try: 'Essayer gratuitement',
+    nav_try: 'Ouvrir l'application',
+    footer_app: 'eldaana.app',
     nav_pricing: 'Tarifs',
     hero_tagline: 'Eldaana sait ce dont tu as besoin.',
     hero_tagline2: 'Avant même que tu le saches.',
     hero_sub: "L'assistant IA personnel qui prédit ton humeur, anticipe tes besoins et simplifie chaque matin.",
-    hero_cta: 'Essayer gratuitement →',
+    hero_cta: 'Accéder à Eldaana →',
     hero_cta2: 'Rejoindre la liste d\'attente',
     hero_badge: '✨ Bêta ouverte — Accès gratuit',
 
@@ -64,12 +65,13 @@ const T = {
     footer_rights: '© 2026 Eldaana. Tous droits réservés.',
   },
   en: {
-    nav_try: 'Try for free',
+    nav_try: 'Open the app',
+    footer_app: 'eldaana.app',
     nav_pricing: 'Pricing',
     hero_tagline: 'Eldaana knows what you need.',
     hero_tagline2: 'Before you do.',
     hero_sub: 'The personal AI assistant that predicts your mood, anticipates your needs and simplifies every morning.',
-    hero_cta: 'Try for free →',
+    hero_cta: 'Open Eldaana →',
     hero_cta2: 'Join the waitlist',
     hero_badge: '✨ Open Beta — Free access',
 
@@ -539,6 +541,9 @@ export default function LandingPage() {
           <div className="flex items-center gap-6 text-sm text-gray-500">
             <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               {t.footer_try}
+            </a>
+            <a href={APP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              {t.footer_app}
             </a>
             <a href="mailto:contact@eldaana.com" className="hover:text-white transition-colors">
               {t.footer_contact}

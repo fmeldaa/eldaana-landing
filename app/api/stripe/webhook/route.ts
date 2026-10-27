@@ -7,8 +7,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { v4 as uuidv4 } from 'uuid'
-import { sendPaymentConfirmEmail, sendLegacyTierRefundEmail } from '@/app/lib/email'
+import {
+  sendPaymentConfirmEmail,
+  sendLegacyTierRefundEmail,
+  sendPaymentFailedEmail,
+  sendPaymentRestoredEmail,
+} from '@/app/lib/email'
 import { isLegacyAudioTextSession, refuseLegacyAudioText } from '@/app/lib/legacyTier'
+import {
+  PORTAL_LOGIN_URL,
+  activationFields,
+  invoiceSubscriptionId,
+  onPaymentFailed,
+  onPaymentSucceeded,
+  onSubscriptionDeleted,
+  type DunningDecision,
+  type ProfileData,
+} from '@/app/lib/dunning'
 
 // Lazy init : évite le crash au build Next.js quand les env vars ne sont pas
 // définies au moment de la collecte des pages statiques.
@@ -91,6 +106,12 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
         break
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice)
+        break
+      case 'invoice.payment_succeeded':
+        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice)
+        break
       default:
         // Types non écoutés — ack sans traitement
         break
@@ -144,9 +165,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     console.log('[stripe-webhook] merging tier into existing profile')
     const updatedData = {
       ...existing.data,
-      conversation_status: 'active',
+      ...activationFields(tier),
       stripe_customer_id: customerId,
-      tier,
       tier_since: new Date().toISOString(),
       onboarding_complete: true,
     }
@@ -163,9 +183,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const newData = {
       user_id: resolvedUserId,
       email,
-      conversation_status: 'active',
+      ...activationFields(tier),
       stripe_customer_id: customerId,
-      tier,
       tier_since: new Date().toISOString(),
       onboarding_complete: true,
     }
@@ -201,12 +220,101 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 }
 
+// ── Dunning : helpers communs ─────────────────────────────────────────────
+
+function idOf(v: string | { id: string } | null | undefined): string | null {
+  if (!v) return null
+  return typeof v === 'string' ? v : v.id
+}
+
+function profileLang(data: ProfileData): 'fr' | 'en' {
+  const lang = String(data?.lang ?? data?.language ?? 'fr').toLowerCase()
+  return lang.startsWith('en') ? 'en' : 'fr'
+}
+
+function profileEmail(data: ProfileData, fallback?: string | null): string | null {
+  return fallback || data?.email || data?.google_email || null
+}
+
+async function applyDecision(userId: string, decision: DunningDecision, label: string) {
+  console.log(`[stripe-webhook] ${label} — user_id=${userId} : ${decision.reason}`)
+  if (!decision.changed) return
+  const { error } = await getSupabase()
+    .from('profiles_eldaana')
+    .update({ data: decision.data, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+  if (error) throw error
+}
+
+// ── invoice.payment_failed ─────────────────────────────────────────────────
+
+async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+  const subscriptionId = invoiceSubscriptionId(invoice)
+  const customerId = idOf(invoice.customer as string | { id: string } | null)
+  if (!subscriptionId || !customerId) {
+    console.log(`[stripe-webhook] payment_failed — facture ${invoice.id} hors abonnement, ignoree`)
+    return
+  }
+  // Statut réel de l'abonnement, lu AVANT le profil (fenêtre d'écriture la plus courte)
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId)
+  const profile = await findProfileByStripeCustomerId(customerId)
+  if (!profile) {
+    console.warn(`[stripe-webhook] payment_failed — aucun profil pour customer=${customerId}`)
+    return
+  }
+  const decision = onPaymentFailed(profile.data, {
+    invoiceId: invoice.id as string,
+    subscriptionStatus: subscription?.status ?? null,
+    nowIso: new Date().toISOString(),
+  })
+  await applyDecision(profile.user_id, decision, 'payment_failed')
+  if (decision.email === 'payment_failed') {
+    const email = profileEmail(profile.data, invoice.customer_email)
+    if (!email) return
+    try {
+      await sendPaymentFailedEmail(email, PORTAL_LOGIN_URL, profileLang(profile.data))
+      console.log(`[stripe-webhook] email paiement echoue envoye — user_id=${profile.user_id}`)
+    } catch (err) {
+      console.error('[stripe-webhook] email paiement echoue impossible:', err)
+    }
+  }
+}
+
+// ── invoice.payment_succeeded ──────────────────────────────────────────────
+
+async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
+  const subscriptionId = invoiceSubscriptionId(invoice)
+  const customerId = idOf(invoice.customer as string | { id: string } | null)
+  if (!subscriptionId || !customerId) return
+  const profile = await findProfileByStripeCustomerId(customerId)
+  if (!profile) return // premier paiement : le profil est créé par checkout.session.completed
+  const decision = onPaymentSucceeded(profile.data, { nowIso: new Date().toISOString() })
+  await applyDecision(profile.user_id, decision, 'payment_succeeded')
+  if (decision.email === 'payment_restored') {
+    const email = profileEmail(profile.data, invoice.customer_email)
+    if (!email) return
+    try {
+      await sendPaymentRestoredEmail(email, profileLang(profile.data))
+      console.log(`[stripe-webhook] email service retabli envoye — user_id=${profile.user_id}`)
+    } catch (err) {
+      console.error('[stripe-webhook] email service retabli impossible:', err)
+    }
+  }
+}
+
 // ── customer.subscription.deleted ─────────────────────────────────────────
+
+const LIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'past_due', 'unpaid'])
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
   console.log('[stripe-webhook] subscription deleted — searching customer:', customerId)
+  // Un autre abonnement encore vivant chez ce client ? Alors on ne coupe rien.
+  const others = await getStripe().subscriptions.list({ customer: customerId, status: 'all', limit: 10 })
+  const otherLiveSubscription = (others?.data ?? []).some(
+    (s: { id: string; status: string }) => s.id !== subscription.id && LIVE_SUBSCRIPTION_STATUSES.has(s.status),
+  )
   const profile = await findProfileByStripeCustomerId(customerId)
 
   if (!profile) {
@@ -216,17 +324,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return
   }
 
-  const updatedData = {
-    ...profile.data,
-    conversation_status: 'inactive',
-    tier_ended: new Date().toISOString(),
-  }
-  const { error } = await getSupabase()
-    .from('profiles_eldaana')
-    .update({ data: updatedData, updated_at: new Date().toISOString() })
-    .eq('user_id', profile.user_id)
-  if (error) throw error
-  console.log(
-    `[stripe-webhook] abonnement annulé — user_id=${profile.user_id}, customer=${customerId}`
-  )
+  const decision = onSubscriptionDeleted(profile.data, {
+    otherLiveSubscription,
+    nowIso: new Date().toISOString(),
+  })
+  await applyDecision(profile.user_id, decision, 'subscription.deleted')
 }

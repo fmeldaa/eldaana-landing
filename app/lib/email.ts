@@ -207,3 +207,88 @@ export async function sendLegacyTierRefundEmail(email: string, lang: 'fr' | 'en'
   const html = lang === 'fr' ? legacyRefundFR(pricingUrl) : legacyRefundEN(pricingUrl)
   return getResend().emails.send({ from, to: email, subject, html })
 }
+
+// ── Dunning : échec de paiement / service rétabli ─────────────────────────────
+// Ton bienveillant, jamais culpabilisant : Eldaana reste là, en mode texte.
+
+const DUNNING_STYLE = `
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto;padding:40px 20px;background:#f9fafb}
+    .container{background:white;border-radius:16px;padding:40px 32px;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+    h1{font-size:24px;font-weight:700;margin:0 0 16px;color:#7c3aed}
+    p{line-height:1.6;color:#4b5563;font-size:15px}
+    .cta{display:inline-block;background:linear-gradient(135deg,#7c3aed,#6366f1);color:white!important;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:600;margin:24px 0;font-size:15px}
+    .footer{color:#9ca3af;font-size:13px;margin-top:32px;text-align:center}`
+
+function dunningPage(body: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <style>${DUNNING_STYLE}
+  </style>
+</head>
+<body>
+  <div class="container">${body}
+  </div>
+</body>
+</html>`
+}
+
+function paymentFailedFR(portalUrl: string): string {
+  return dunningPage(`
+    <h1>Un petit souci avec ton paiement</h1>
+    <p>Bonjour,</p>
+    <p>Ton dernier paiement Eldaana n'a pas pu passer. Ça arrive : une carte expirée, un plafond atteint, une banque un peu prudente.</p>
+    <p>Ton mode conversation est en pause le temps que ça se règle. Tu restes connecté·e à Eldaana en mode texte, avec tout ce qu'elle sait de toi.</p>
+    <p style="text-align:center"><a href="${portalUrl}" class="cta">Mettre à jour mon moyen de paiement</a></p>
+    <p>On continue à essayer de notre côté. Si ton paiement passe dans les prochains jours, tout reprend normalement sans que tu aies à faire quoi que ce soit.</p>
+    <div class="footer">À tout de suite,<br/>Eldaana</div>`)
+}
+
+function paymentFailedEN(portalUrl: string): string {
+  return dunningPage(`
+    <h1>A small issue with your payment</h1>
+    <p>Hello,</p>
+    <p>Your latest Eldaana payment didn't go through. It happens: an expired card, a spending limit, a cautious bank.</p>
+    <p>Your conversation mode is paused while this gets sorted. You stay connected to Eldaana in text mode, with everything she knows about you.</p>
+    <p style="text-align:center"><a href="${portalUrl}" class="cta">Update my payment method</a></p>
+    <p>We keep trying on our side. If your payment goes through in the next few days, everything resumes on its own, with nothing for you to do.</p>
+    <div class="footer">Talk soon,<br/>Eldaana</div>`)
+}
+
+function paymentRestoredFR(appUrl: string): string {
+  return dunningPage(`
+    <h1>Ton paiement est passé 💜</h1>
+    <p>Bonjour,</p>
+    <p>Bonne nouvelle : ton paiement a bien été reçu. Ton mode conversation est de retour, comme avant.</p>
+    <p style="text-align:center"><a href="${appUrl}" class="cta">Retrouver Eldaana</a></p>
+    <div class="footer">Merci pour ta confiance,<br/>Eldaana</div>`)
+}
+
+function paymentRestoredEN(appUrl: string): string {
+  return dunningPage(`
+    <h1>Your payment went through 💜</h1>
+    <p>Hello,</p>
+    <p>Good news: your payment was received. Your conversation mode is back, just as before.</p>
+    <p style="text-align:center"><a href="${appUrl}" class="cta">Back to Eldaana</a></p>
+    <div class="footer">Thank you for your trust,<br/>Eldaana</div>`)
+}
+
+export async function sendPaymentFailedEmail(email: string, portalUrl: string, lang: 'fr' | 'en') {
+  const from = lang === 'fr' ? 'bonjour@eldaana.com' : 'hello@eldaana.com'
+  const subject =
+    lang === 'fr'
+      ? 'Souci avec ton paiement Eldaana — on continue à essayer'
+      : 'Issue with your Eldaana payment — we keep trying'
+  const html = lang === 'fr' ? paymentFailedFR(portalUrl) : paymentFailedEN(portalUrl)
+  return getResend().emails.send({ from, to: email, subject, html })
+}
+
+export async function sendPaymentRestoredEmail(email: string, lang: 'fr' | 'en') {
+  const from = lang === 'fr' ? 'bonjour@eldaana.com' : 'hello@eldaana.com'
+  const subject =
+    lang === 'fr' ? 'Ton paiement est passé, Eldaana est de retour' : 'Your payment went through, Eldaana is back'
+  const appUrl = 'https://eldaana.app/'
+  const html = lang === 'fr' ? paymentRestoredFR(appUrl) : paymentRestoredEN(appUrl)
+  return getResend().emails.send({ from, to: email, subject, html })
+}

@@ -56,7 +56,6 @@ const T = {
     waitlist_cta: 'Je rejoins la liste →',
     waitlist_success: '🎉 Tu es sur la liste ! On te prévient dès que c\'est prêt.',
     waitlist_error: 'Une erreur est survenue. Réessaie.',
-    waitlist_count: 'Déjà +247 personnes en attente',
 
     footer_tagline: 'L\'IA qui anticipe ta vie.',
     footer_try: 'Essayer gratuitement',
@@ -116,7 +115,6 @@ const T = {
     waitlist_cta: 'Join the list →',
     waitlist_success: '🎉 You\'re on the list! We\'ll notify you as soon as it\'s ready.',
     waitlist_error: 'An error occurred. Please try again.',
-    waitlist_count: 'Already 247+ people waiting',
 
     footer_tagline: 'The AI that anticipates your life.',
     footer_try: 'Try for free',
@@ -365,9 +363,6 @@ export default function LandingPage() {
               {t.hero_cta2}
             </a>
           </div>
-
-          {/* Social proof */}
-          <p className="mt-8 text-gray-500 text-sm">{t.waitlist_count}</p>
         </div>
       </section>
 
@@ -511,8 +506,6 @@ export default function LandingPage() {
           {waitlistStatus === 'error' && (
             <p className="text-red-400 text-sm mt-3">{t.waitlist_error}</p>
           )}
-
-          <p className="text-gray-600 text-sm mt-6">{t.waitlist_count}</p>
         </div>
       </section>
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.eldaana.com'),
   title: 'Eldaana — L\'IA qui anticipe ta vie',
   description: 'Eldaana sait ce dont tu as besoin. Avant même que tu le saches. L\'assistant IA personnel qui prédit, suggère et simplifie ton quotidien.',
   openGraph: {

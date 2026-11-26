@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Eldaana — L\'IA qui anticipe ta vie',
     description: 'Eldaana sait ce dont tu as besoin. Avant même que tu le saches.',
-    url: 'https://eldaana.com',
+    url: 'https://www.eldaana.com',
     siteName: 'Eldaana',
     locale: 'fr_FR',
     type: 'website',
